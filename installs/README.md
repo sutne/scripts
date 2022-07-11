@@ -1,8 +1,11 @@
 # Installs
 
-Install everything with:
+Install everything with (in this order, terminal might need to be closed and reopened after some of these):
 ```
-sudo innstall-all.sh
+use-zsh.sh
+install-homebrew.sh
+install-git.sh
+install-pandoc.sh
 ```
 
 ## Other stuff
