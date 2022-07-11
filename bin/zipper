@@ -1,0 +1,91 @@
+#! /usr/bin/env python3
+
+import os
+from zipfile import ZipFile
+from pathlib import Path
+from glob import glob
+import fnmatch
+
+
+zipfile_path = "archive.zip"
+
+
+def main():
+    gitignore_files = find_all_gitignore()
+    gitignore, gitinclude = parse_gitignore_files(gitignore_files)
+    files = get_files(gitignore, gitinclude)
+    create_zip(zipfile_path, files)
+
+
+def find_all_gitignore() -> list[str]:
+    return glob("**/.gitignore", recursive=True)
+
+
+def parse_gitignore_files(gitignore_files: list[str]) -> tuple[list[str, list[str]]]:
+    # zipfile_path required to not recursively add the zip
+    ignore_patterns = [zipfile_path]
+    include_patterns = []
+    for gitignore_file in gitignore_files:
+        path = os.path.dirname(gitignore_file)
+        with open(gitignore_file) as gitignore:
+            for line in gitignore:
+                if line == "":
+                    continue
+                if line.startswith("#"):
+                    continue
+                if line.startswith("!"):
+                    include_pattern = line.removeprefix("!").strip()
+                    include_patterns.append(os.path.join(path, include_pattern))
+                    continue
+                pattern = os.path.join(path, line.strip())
+                if pattern in ignore_patterns:
+                    continue
+                if Path(pattern).is_dir():
+                    pattern = os.path.join(pattern, "**")
+                elif not pattern.startswith(("/", "*")):
+                    line = f"**/{line}"
+                ignore_patterns.append(pattern)
+    return ignore_patterns, include_patterns
+
+
+def all_files() -> list[str]:
+    files = glob("**", recursive=True)
+    return list(filter(lambda f: not Path(f).is_dir(), files))
+
+
+def get_files(
+    ignore_patterns: list[str],
+    include_patterns: list[str],
+) -> dict[str, bool]:
+    files = {}
+    for f in all_files():
+        files[f] = True
+    # remove all files from ignore patterns
+    for pattern in ignore_patterns:
+        should_ignore = fnmatch.filter(files.keys(), pattern)
+        for name in should_ignore:
+            files[name] = False
+    # re add any ignored files that should be included after all
+    for pattern in include_patterns:
+        ignored = [f for f in files.keys() if not files[f]]
+        should_re_add = fnmatch.filter(ignored, pattern)
+        for name in should_re_add:
+            files[name] = True
+
+    return dict(sorted(files.items()))
+
+
+def create_zip(name: str, files: dict[str, bool]) -> None:
+    print("Creating zip with:")
+    # with ZipFile(name, "w") as zipper:
+    for f, add in files.items():
+        if add:
+            print(f"\t{f}")
+            # zipper.write(f)
+        else:
+            print(f"ignored {f}")
+    print(f"Saved zip to: {name}")
+
+
+if __name__ == "__main__":
+    main()
