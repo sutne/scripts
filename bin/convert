@@ -1,29 +1,116 @@
 #! /usr/bin/env python3
 
-from pathlib import Path
 import glob
 import os
+import argparse
 
 
-ignored_filenames = [
-    "README",
-]
+templates_path = "~/GitHub/pandoc-templates/"
+
+
+parser = argparse.ArgumentParser(
+    description="Convert '.md' files to '.pdf' with pandoc"
+)
+parser.add_argument(
+    "-f",
+    "--force",
+    action="store_true",  # default value will be `False`
+    help="Force conversion, even if .md hasn't changed since PDF was updated",
+)
+parser.add_argument(
+    "--only",
+    nargs="*",
+    default=[],
+    help="List of filenames (without extension) to convert, all others are ignored",
+)
+parser.add_argument(
+    "--excl",
+    nargs="*",
+    default=[],
+    help="List of filenames (without extension) to not convert, all others are converted",
+)
+args = vars(parser.parse_args())
+
+
+# convenience lambdas
+get_filename = lambda path: os.path.basename(path)
+get_filedir = lambda path: os.path.dirname(path)
+last_edit_time = lambda path: os.path.getmtime(path)
+to_pdf = lambda md_path: md_path.replace(".md", ".pdf")
 
 
 def main():
-    markdown_files = get_markdown_files()
+    markdown_files = get_markdown_files_to_convert()
     convert_to_pdf(markdown_files)
 
 
-def get_markdown_files() -> list[str]:
-    """Find all markdown files in cwd and all subdirs"""
+def get_markdown_files_to_convert() -> list[str]:
+    """Find all markdown files that should be converted"""
+    # Find all markdown files in `cwd` and all subdirs
     files = sorted(glob.glob(f"**/*.md", recursive=True))
-    files = list(filter(lambda f: Path(f).stem not in ignored_filenames, files))
+    if args["only"] != []:
+        # filter away any files with names not in given filenames
+        return list(filter(lambda f: get_filename(f) in args["only"], files))
+    if args["excl"] != []:
+        # filter away all files with names to exclude
+        return list(filter(lambda f: get_filename(f) not in args["excl"], files))
     return files
 
 
-def find_yaml_template(markdown_path: str) -> str:
-    with open(markdown_path, "r") as markdown_file:
+def convert_to_pdf(files: list[str]) -> None:
+    if len(files) == 0:
+        print("No files to convert")
+        return
+    pandoc_args = [
+        "-s",
+        "--pdf-engine=pdflatex",
+        "--filter pandoc-crossref",
+        "--citeproc",
+        "--listings",
+        # "-M codeBlockCaptions",
+    ]
+    pandoc_args = " ".join(pandoc_args)
+    for markdown_file in files:
+        convert_file(markdown_file, pandoc_args)
+    print("Done")
+
+
+def convert_file(markdown_file: str, pandoc_args: str):
+    # check if conversion is needed
+    if not needs_conversion(markdown_file):
+        print(f"Up to date: {markdown_file}")
+        return
+
+    # add template to args if it is specified in metadata
+    template = find_yaml_template(markdown_file)
+    if template is not None:
+        pandoc_args += f" --template {template}"
+
+    # convert file
+    filedir = os.path.dirname(markdown_file)
+    filename = os.path.basename(markdown_file)
+
+    print(f"Converting: {markdown_file}")
+    run_command(
+        f"pandoc {pandoc_args} -i '{filename}' -o '{to_pdf(filename)}';",
+        from_dir=filedir,
+    )
+
+
+def needs_conversion(markdown_file: str) -> bool:
+    """Return true if PDF needs to be created/updated.
+    Argument must be full path to file"""
+    if args["force"]:
+        return True  # force conversion, even if pdf is up to date
+    pdf_file = to_pdf(markdown_file)
+    if not os.path.isfile(pdf_file):
+        return True  # PDF doesn't exist
+    # check if markdown has been edited after PDF was created
+    return last_edit_time(pdf_file) < last_edit_time(markdown_file)
+
+
+def find_yaml_template(markdown_file: str) -> str:
+    with open(markdown_file, "r") as markdown_file:
         if not markdown_file.readline().strip() == "---":
             return None  # file has no metadata
         for line in markdown_file:
@@ -33,54 +120,21 @@ def find_yaml_template(markdown_path: str) -> str:
                 continue  # metadata entry is not key-value pair
             key, value = [l.strip() for l in line.split(":")]
             if key == "template":
-                return value
+                return os.path.join(templates_path, value)
     return None
 
 
-def get_pdf_file(markdown_filename: str) -> str:
-    """Remove the .md extension from the filepath, and replace it with .pdf"""
-    return markdown_filename.replace(".md", ".pdf")
-
-
-def needs_conversion(markdown_file: str, pdf_file: str) -> bool:
-    """Return true if PDF needs to be created/updated.
-    Arguments must be full path to both files"""
-    if not os.path.isfile(pdf_file):
-        return True  # PDF doesn't exist
-    # check if markdown has been edited after PDF was created
-    pdf_time = os.path.getmtime(pdf_file)
-    markdown_time = os.path.getmtime(markdown_file)
-    return pdf_time < markdown_time
-
-
-def convert_to_pdf(filenames: list[str]) -> None:
-    pandoc_args = [
-        "-s",
-        "--filter pandoc-crossref",
-        "--listings",
-        "--citeproc",
-        "--pdf-engine=pdflatex",
-    ]
-
-    # Convert all the files in the list
-    for markdown_file in filenames:
-        # create pdf name and check if conversion is needed
-        pdf_file = get_pdf_file(markdown_file)
-        if not needs_conversion(markdown_file, pdf_file):
-            print(f"   Skipped: {markdown_file}")
-            continue
-
-        # setup pandoc settings
-        settings = " ".join(pandoc_args)
-
-        # Check if template should be used
-        template = find_yaml_template(markdown_file)
-        if template is not None:
-            settings += f" --template={template}"
-
-        print(f"Converting: {markdown_file}")
-        os.system(f"pandoc {settings} -i '{markdown_file}' -o '{pdf_file}';")
-    print("Done")
+def run_command(command: str, from_dir: str = ""):
+    if from_dir == "":
+        os.system(command)
+        return
+    cwd = os.path.abspath(os.getcwd())
+    # move to `from_dir`
+    os.chdir(from_dir)
+    # run command
+    os.system(command)
+    # move back to original cwd
+    os.chdir(cwd)
 
 
 if __name__ == "__main__":
