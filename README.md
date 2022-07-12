@@ -1,16 +1,18 @@
 # Scripts
 A collection of convenience scripts i use from time to time.
 
-### convert
+---
+
+## convert
 Finds markdown files from `cwd` and converts it to *PDF* using *pandoc* and *basictex* with optional use of a variety of [pandoc templates](github.com/sutne/pandoc-templates) by having the following the markdown yaml metadata:
 ```yaml
 template: template-name.tex
 ```
 
-### zipper
+## zipper
 Adds all files and subdirectories from `cwd` to a zip, but exclude all files/folders contained in any `.gitignore` files.
 
-### installs
+## installs
 A directory with some script to quickly and painlessly install what i need to get my mac up and running. I usually reset my mac once a year to clear clutter and these scripts makes that process a lot easier.
 
 --- 
