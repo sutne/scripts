@@ -1,0 +1,48 @@
+#! /usr/bin/env python3
+
+import glob
+import sys
+from send2trash import send2trash
+
+help_string = """usage: purger FILENAME
+
+Delete a given file from all subdirectories under `cwd` by moving it to the trash.
+
+required arguments:
+    FILENAME    Exact filename to purge (with extension)"""
+
+
+# get command input
+if len(sys.argv) != 2 or sys.argv[1] in ["-h", "--help"]:
+    print(help_string)
+    exit(0)
+
+filename = sys.argv[1]
+
+
+def main():
+    files = find_all_files(filename)
+    if confirm_deletion(files):
+        delete_files(files)
+
+
+def find_all_files(filename: str) -> list[str]:
+    return sorted(glob.glob(f"**/{filename}", recursive=True))
+
+
+def confirm_deletion(files: list[str]) -> bool:
+    print("Are you sure you want to move all the following files to the trash?")
+    for f in files:
+        print(f"\t{f}")
+    answer = input("'yes' or 'no': ")
+    return answer == "yes"
+
+
+def delete_files(files: list[str]):
+    for f in files:
+        send2trash(f)
+        print(f"purged: {f}")
+
+
+if __name__ == "__main__":
+    main()
