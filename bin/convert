@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 
+from pathlib import Path
 import glob
 import os
 import argparse
@@ -33,7 +34,7 @@ args = vars(parser.parse_args())
 
 
 # convenience lambdas
-get_filename = lambda path: os.path.basename(path)
+get_filename = lambda path: Path(path).stem  # remove path and extension
 get_filedir = lambda path: os.path.dirname(path)
 last_edit_time = lambda path: os.path.getmtime(path)
 to_pdf = lambda md_path: md_path.replace(".md", ".pdf")
@@ -67,7 +68,13 @@ def convert_to_pdf(files: list[str]) -> None:
         "--filter pandoc-crossref",
         "--citeproc",
         "--listings",
-        # "-M codeBlockCaptions",
+        # pandoc-crossref args/defaults
+        "-M codeBlockCaptions=true",
+        "-M figPrefix='Figure'",
+        "-M tblPrefix='Table'",
+        "-M eqnPrefix='Equation'",
+        "-M lstPrefix='Listing'",
+        "-M secPrefix='Section'",
     ]
     pandoc_args = " ".join(pandoc_args)
     for markdown_file in files:
