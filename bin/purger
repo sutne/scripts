@@ -2,6 +2,7 @@
 
 import glob
 import sys
+import os
 from send2trash import send2trash
 
 help_string = """usage: purger FILENAME
@@ -22,12 +23,16 @@ filename = sys.argv[1]
 
 def main():
     files = find_all_files(filename)
+    if not files:
+        print(f"No files matching '{filename}'")
+        return
     if confirm_deletion(files):
         delete_files(files)
 
 
 def find_all_files(filename: str) -> list[str]:
-    return sorted(glob.glob(f"**/{filename}", recursive=True))
+    files = sorted(glob.glob(f"**/{filename}", recursive=True))
+    return list(filter(lambda f: not os.path.isdir(f), files))
 
 
 def confirm_deletion(files: list[str]) -> bool:
