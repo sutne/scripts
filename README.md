@@ -12,6 +12,9 @@ template: template-name.tex
 ## zipper
 Adds all files and subdirectories from `cwd` to a zip, but exclude all files/folders contained in any `.gitignore` files.
 
+## purger
+Give it a complete filename or an extension and it will find all instances that match and ask you if you want to move them to the trash or not.
+
 ## installs
 A directory with some script to quickly and painlessly install what i need to get my mac up and running. I usually reset my mac once a year to clear clutter and these scripts makes that process a lot easier.
 

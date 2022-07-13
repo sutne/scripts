@@ -5,12 +5,12 @@ import sys
 import os
 from send2trash import send2trash
 
-help_string = """usage: purger FILENAME
+help_string = """usage: purger PATTERN
 
 Delete a given file from all subdirectories under `cwd` by moving it to the trash.
 
 required arguments:
-    FILENAME    Exact filename to purge (with extension)"""
+    PATTERN    Exact filename (with extension) to purge, or only the extension"""
 
 
 # get command input
@@ -18,20 +18,23 @@ if len(sys.argv) != 2 or sys.argv[1] in ["-h", "--help"]:
     print(help_string)
     exit(0)
 
-filename = sys.argv[1]
+pattern = sys.argv[1]
 
 
 def main():
-    files = find_all_files(filename)
+    files = find_all_files(pattern)
     if not files:
-        print(f"No files matching '{filename}'")
+        print(f"No files matching '{pattern}'")
         return
     if confirm_deletion(files):
         delete_files(files)
 
 
-def find_all_files(filename: str) -> list[str]:
-    files = sorted(glob.glob(f"**/{filename}", recursive=True))
+def find_all_files(pattern: str) -> list[str]:
+    if pattern.startswith("."):  # pattern is an extension
+        files = sorted(glob.glob(f"**/*{pattern}", recursive=True))
+    else:
+        files = sorted(glob.glob(f"**/{pattern}", recursive=True))
     return list(filter(lambda f: not os.path.isdir(f), files))
 
 
