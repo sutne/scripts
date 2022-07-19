@@ -1,13 +1,35 @@
 #! /usr/bin/env python3
 
-import os
-from zipfile import ZipFile
-from pathlib import Path
-from glob import glob
+import argparse
 import fnmatch
+import os
+from glob import glob
+from pathlib import Path
+from zipfile import ZipFile
+
+from setup.util import min_python_version
+
+min_python_version(3, 9)
 
 
 zipfile_path = "archive.zip"
+
+parser = argparse.ArgumentParser(
+    description="Convert '.md' files to '.pdf' with pandoc"
+)
+parser.add_argument(
+    "--only",
+    nargs="*",
+    default=[],
+    help="List of filenames or extensions to convert, all others are ignored",
+)
+parser.add_argument(
+    "--excl",
+    nargs="*",
+    default=[],
+    help="List of filenames or extensions to not convert, all others are converted",
+)
+args = vars(parser.parse_args())
 
 
 def main():
@@ -21,10 +43,10 @@ def find_all_gitignore() -> list[str]:
     return glob("**/.gitignore", recursive=True)
 
 
-def parse_gitignore_files(gitignore_files: list[str]) -> tuple[list[str, list[str]]]:
+def parse_gitignore_files(gitignore_files: list[str]) -> tuple[list[str], list[str]]:
     # zipfile_path required to not recursively add the zip
-    ignore_patterns = [zipfile_path]
-    include_patterns = []
+    ignore_patterns: list[str] = [zipfile_path]
+    include_patterns: list[str] = []
     for gitignore_file in gitignore_files:
         path = os.path.dirname(gitignore_file)
         with open(gitignore_file) as gitignore:
@@ -34,8 +56,8 @@ def parse_gitignore_files(gitignore_files: list[str]) -> tuple[list[str, list[st
                 if line.startswith("#"):
                     continue
                 if line.startswith("!"):
-                    include_pattern = line.removeprefix("!").strip()
-                    include_patterns.append(os.path.join(path, include_pattern))
+                    include_pattern = os.path.join(path, line.removeprefix("!").strip())
+                    include_patterns.append(include_pattern)
                     continue
                 pattern = os.path.join(path, line.strip())
                 if pattern in ignore_patterns:

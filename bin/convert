@@ -1,12 +1,15 @@
 #! /usr/bin/env python3
 
-from pathlib import Path
+import argparse
 import glob
 import os
-import argparse
+from pathlib import Path
+from typing import Union
 
+from setup.config import pandoc_templates_path
+from setup.util import min_python_version
 
-templates_path = "~/GitHub/pandoc-templates/"
+min_python_version(3, 9)
 
 
 parser = argparse.ArgumentParser(
@@ -116,18 +119,18 @@ def needs_conversion(markdown_file: str) -> bool:
     return last_edit_time(pdf_file) < last_edit_time(markdown_file)
 
 
-def find_yaml_template(markdown_file: str) -> str:
-    with open(markdown_file, "r") as markdown_file:
-        if not markdown_file.readline().strip() == "---":
+def find_yaml_template(markdown_file: str) -> Union[str, None]:
+    with open(markdown_file, "r") as file:
+        if not file.readline().strip() == "---":
             return None  # file has no metadata
-        for line in markdown_file:
+        for line in file:
             if line.strip() == "---":
                 break  # reached end of metadata
             if line.find(":") == -1:
                 continue  # metadata entry is not key-value pair
             key, value = [l.strip() for l in line.split(":")]
             if key == "template":
-                return os.path.join(templates_path, value)
+                return os.path.join(pandoc_templates_path, value)
     return None
 
 
