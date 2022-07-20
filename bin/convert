@@ -33,6 +33,12 @@ parser.add_argument(
     default=[],
     help="List of filenames (without extension) to not convert, all others are converted",
 )
+parser.add_argument(
+    "--only-template",
+    type=str,
+    default=None,
+    help="Only convert files that use the specified template",
+)
 args = vars(parser.parse_args())
 
 
@@ -86,15 +92,19 @@ def convert_to_pdf(files: list[str]) -> None:
 
 
 def convert_file(markdown_file: str, pandoc_args: str):
+    # add template to args if it is specified in metadata
+    template = find_yaml_template(markdown_file)
+    if template is not None:
+        pandoc_args += f" --template {os.path.join(pandoc_templates_path,template)}"
+
+    if args["only_template"] != None:
+        if args["only_template"] != template:
+            return
+
     # check if conversion is needed
     if not needs_conversion(markdown_file):
         print(f"Up to date: {markdown_file}")
         return
-
-    # add template to args if it is specified in metadata
-    template = find_yaml_template(markdown_file)
-    if template is not None:
-        pandoc_args += f" --template {template}"
 
     # convert file
     filedir = os.path.dirname(markdown_file)
@@ -130,7 +140,7 @@ def find_yaml_template(markdown_file: str) -> Union[str, None]:
                 continue  # metadata entry is not key-value pair
             key, value = [l.strip() for l in line.split(":")]
             if key == "template":
-                return os.path.join(pandoc_templates_path, value)
+                return value
     return None
 
 
