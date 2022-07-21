@@ -4,7 +4,7 @@ import argparse
 import glob
 import os
 from pathlib import Path
-from typing import Union
+from typing import Callable, Union
 
 from setup.config import pandoc_templates_path
 from setup.util import min_python_version
@@ -37,16 +37,16 @@ parser.add_argument(
     "--only-template",
     type=str,
     default=None,
-    help="Only convert files that use the specified template",
+    help="Only convert files that use this specified template",
 )
 args = vars(parser.parse_args())
 
 
 # convenience lambdas
-get_filename = lambda path: Path(path).stem  # remove path and extension
-get_filedir = lambda path: os.path.dirname(path)
-last_edit_time = lambda path: os.path.getmtime(path)
-to_pdf = lambda md_path: md_path.replace(".md", ".pdf")
+get_filename: Callable[[str], str] = lambda path: Path(path).stem
+get_filedir: Callable[[str], str] = lambda path: os.path.dirname(path)
+last_edit_time: Callable[[str], float] = lambda path: os.path.getmtime(path)
+to_pdf: Callable[[str], str] = lambda md_path: md_path.replace(".md", ".pdf")
 
 
 def main():
@@ -95,7 +95,7 @@ def convert_file(markdown_file: str, pandoc_args: str):
     # add template to args if it is specified in metadata
     template = find_yaml_template(markdown_file)
     if template is not None:
-        pandoc_args += f" --template {os.path.join(pandoc_templates_path,template)}"
+        pandoc_args += f" --template {os.path.join(pandoc_templates_path, template)}"
 
     if args["only_template"] != None:
         if args["only_template"] != template:
