@@ -10,6 +10,7 @@ from setup.util import min_python_version
 
 min_python_version(3, 9)
 
+
 help_string = """usage: purger PATTERN
 
 Delete a given file from all subdirectories under `cwd` by moving it to the trash.
@@ -17,16 +18,14 @@ Delete a given file from all subdirectories under `cwd` by moving it to the tras
 required arguments:
     PATTERN    Exact filename (with extension) to purge, or only the extension"""
 
-
 # get command input
 if len(sys.argv) != 2 or sys.argv[1] in ["-h", "--help"]:
     print(help_string)
     exit(0)
 
-pattern = sys.argv[1]
-
 
 def main():
+    pattern = sys.argv[1]
     files = find_all_files(pattern)
     if not files:
         print(f"No files matching '{pattern}'")
