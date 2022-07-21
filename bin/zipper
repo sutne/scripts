@@ -4,7 +4,7 @@ import argparse
 import fnmatch
 import os
 from glob import glob
-from pathlib import Path
+from lib2to3.pytree import convert
 from zipfile import ZipFile
 
 from setup.util import min_python_version
@@ -12,22 +12,32 @@ from setup.util import min_python_version
 min_python_version(3, 9)
 
 
-zipfile_path = "archive.zip"
-
 parser = argparse.ArgumentParser(
     description="Convert '.md' files to '.pdf' with pandoc"
 )
 parser.add_argument(
-    "--only",
-    nargs="*",
-    default=[],
-    help="List of filenames or extensions to convert, all others are ignored",
+    "-n",
+    "--name",
+    default="archive.zip",
+    help="Name of the created zipfile, default is 'archive.zip'",
+)
+parser.add_argument(
+    "-v",
+    "--verbose",
+    action="store_true",  # default will be `False`
+    help="Print patterns used, and all ignored files in addition to included files",
 )
 parser.add_argument(
     "--excl",
     nargs="*",
     default=[],
-    help="List of filenames or extensions to not convert, all others are converted",
+    help="List of files/folders/extensions to not convert in addition to those in gitignore, all others are converted",
+)
+parser.add_argument(
+    "--only",
+    nargs="*",
+    default=[],
+    help="List of files/folders/extensions to convert, all others are ignored, overrides ignored patterns",
 )
 args = vars(parser.parse_args())
 
@@ -35,8 +45,15 @@ args = vars(parser.parse_args())
 def main():
     gitignore_files = find_all_gitignore()
     gitignore, gitinclude = parse_gitignore_files(gitignore_files)
+    if args["only"]:
+        gitignore, gitinclude = ["**"], args["only"]
+    if args["excl"]:
+        gitignore.extend(args["excl"])
+    if args["verbose"]:
+        print("Ignore\t", gitignore)
+        print("Include\t", gitinclude, "\n")
     files = get_files(gitignore, gitinclude)
-    create_zip(zipfile_path, files)
+    create_zip(files)
 
 
 def find_all_gitignore() -> list[str]:
@@ -45,7 +62,7 @@ def find_all_gitignore() -> list[str]:
 
 def parse_gitignore_files(gitignore_files: list[str]) -> tuple[list[str], list[str]]:
     # zipfile_path required to not recursively add the zip
-    ignore_patterns: list[str] = [zipfile_path]
+    ignore_patterns: list[str] = [args["name"]]
     include_patterns: list[str] = []
     for gitignore_file in gitignore_files:
         path = os.path.dirname(gitignore_file)
@@ -60,19 +77,13 @@ def parse_gitignore_files(gitignore_files: list[str]) -> tuple[list[str], list[s
                     include_patterns.append(include_pattern)
                     continue
                 pattern = os.path.join(path, line.strip())
-                if pattern in ignore_patterns:
-                    continue
-                if Path(pattern).is_dir():
-                    pattern = os.path.join(pattern, "**")
-                elif not pattern.startswith(("/", "*")):
-                    line = f"**/{line}"
                 ignore_patterns.append(pattern)
     return ignore_patterns, include_patterns
 
 
 def all_files() -> list[str]:
     files = glob("**", recursive=True)
-    return list(filter(lambda f: not Path(f).is_dir(), files))
+    return list(filter(lambda f: not os.path.isdir(f), files))
 
 
 def get_files(
@@ -83,12 +94,12 @@ def get_files(
     for f in all_files():
         files[f] = True
     # remove all files from ignore patterns
-    for pattern in ignore_patterns:
+    for pattern in convert_patterns(ignore_patterns):
         should_ignore = fnmatch.filter(files.keys(), pattern)
         for name in should_ignore:
             files[name] = False
     # re add any ignored files that should be included after all
-    for pattern in include_patterns:
+    for pattern in convert_patterns(include_patterns):
         ignored = [f for f in files.keys() if not files[f]]
         should_re_add = fnmatch.filter(ignored, pattern)
         for name in should_re_add:
@@ -97,16 +108,30 @@ def get_files(
     return dict(sorted(files.items()))
 
 
-def create_zip(name: str, files: dict[str, bool]) -> None:
-    print("Creating zip with:")
-    # with ZipFile(name, "w") as zipper:
-    for f, add in files.items():
-        if add:
-            print(f"\t{f}")
-            # zipper.write(f)
-        else:
-            print(f"ignored {f}")
-    print(f"Saved zip to: {name}")
+def convert_patterns(patterns: list[str]) -> list[str]:
+    """Convert a gitignore pattern to a fnmatch pattern"""
+    additions = []
+    for i in range(len(patterns)):
+        pattern = patterns[i]
+        if not pattern.startswith(("/", "*")):
+            pattern = f"**{pattern}"
+        if os.path.isdir(pattern) or len(pattern.split(".")) == 1:
+            additions.append(f"{pattern}/**")
+        patterns[i] = pattern
+    patterns.extend(additions)
+    return patterns
+
+
+def create_zip(files: dict[str, bool]) -> None:
+    name = f"{args['name'].split('.')[0]}.zip"
+    print(f"Creating '{name}' with:")
+    with ZipFile(name, "w") as zipper:
+        for f, add in files.items():
+            if add:
+                print(f"\t{f}")
+                zipper.write(f)
+            elif args["verbose"]:
+                print(f"ignored {f}")
 
 
 if __name__ == "__main__":
