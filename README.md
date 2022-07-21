@@ -8,6 +8,7 @@ Finds markdown files from `cwd` and converts it to *PDF* using *pandoc* and *bas
 ```yaml
 template: template-name.tex
 ```
+make sure the correct absolute path path for the pandoc templates are placed in [the config file](bin/setup/config.py).
 
 ## zipper
 Adds all files and subdirectories from `cwd` to a zip, but exclude all files/folders contained in any `.gitignore` files.
