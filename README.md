@@ -65,3 +65,45 @@ open -a TextEdit ~/.bash_profile
 ```sh
 open -a TextEdit ~/.zshrc
 ```
+
+
+## Installs
+
+Start by swithing to zsh:
+```sh
+# simply switch from bash to zsh as default
+chsh -s /bin/zsh
+```
+then (after restarting the terminal) install Homebrew:
+```sh
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+Install other stuff with:
+```
+brew install git
+brew install pandoc
+brew install pandoc-crossref
+```
+
+### Command Prompts
+
+For convenience i also like to customize my command prompts, so i just save them here so i don't need to recreate them from scratch.
+
+> might want to run the following to stop annoying prompt every time terminal is opened:
+> 
+> ```
+> touch ~/.hushlogin
+> ```
+
+#### zsh 
+Add to: `~/.zshrc`
+```sh
+export PROMPT="%F{227}%n%F{reset}: %F{081}%2~%F{reset} => "
+``` 
+
+#### bash
+Add to: `~/.bashrc`
+```sh
+PS1="\e[1;49;93m\u\e[0m: \e[0;49;96m\W\e[0m => "
+``` 
+

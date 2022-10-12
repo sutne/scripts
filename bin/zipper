@@ -13,7 +13,7 @@ min_python_version(3, 9)
 
 
 parser = argparse.ArgumentParser(
-    description="Convert '.md' files to '.pdf' with pandoc"
+    description="Easily create a .zip of the current directory, skipping any files/folders that are in any .gitignore"
 )
 parser.add_argument(
     "-n",
