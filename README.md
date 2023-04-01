@@ -1,26 +1,6 @@
 # Scripts
 A collection of convenience scripts i use from time to time.
 
----
-
-## convert
-Finds markdown files from `cwd` and converts it to *PDF* using *pandoc* and *basictex* with optional use of a variety of [pandoc templates](github.com/sutne/pandoc-templates) by having the following the markdown yaml metadata:
-```yaml
-template: template-name.tex
-```
-make sure the correct absolute path path for the pandoc templates are placed in [the config file](bin/setup/config.py).
-
-## zipper
-Adds all files and subdirectories from `cwd` to a zip, but exclude all files/folders contained in any `.gitignore` files.
-
-## purger
-Give it a complete filename or an extension and it will find all instances that match and ask you if you want to move them to the trash or not.
-
-## installs
-A directory with some script to quickly and painlessly install what i need to get my mac up and running. I usually reset my mac once a year to clear clutter and these scripts makes that process a lot easier.
-
---- 
-
 ## Making the scripts executable from anywhere
 
 
@@ -33,7 +13,7 @@ Is at the top of the script. Then use the following command for the relevant scr
 ```
 chmod +x <script_name>
 ```
-Keep in mind that `<script_name>` is what you will use to envoke the script, make sure its unique and doesn't collide with anything else. This is also why the files are saved without extension, so you can write `zipper` instead of `zipper.py`.
+Keep in mind that `<script_name>` is what you will use to envoke the script, make sure its unique and doesn't collide with anything else. This is also why the files are saved without extension, so you can write `zipper <args>` instead of `zipper.py <args>`.
 
 ---
 
@@ -49,7 +29,7 @@ export PATH="<path-to-script-dir>:$PATH"
 
 > for me this is: 
 > ```
-> export PATH="Users/sutne/GitHub/Scripts/bin:$PATH"
+> export PATH="~/Developer/GitHub/scripts/bin:$PATH"
 > ```
 
 and paste it into a new line in one of the following files (depending on which shell you use):
@@ -80,10 +60,16 @@ then (after restarting the terminal) install Homebrew:
 ```
 Install other stuff with:
 ```
-brew install git
-brew install pandoc
-brew install pandoc-crossref
+brew install pandoc pandoc-crossref
 ```
+Also make sure the correct path to pandoc-templates is set in `setup/config.py`:
+
+> for me this is: 
+> ```
+> pandoc_templates_path = "~/Developer/GitHub/pandoc-templates/"
+> ```
+
+
 
 ### Command Prompts
 
@@ -105,5 +91,4 @@ export PROMPT="%F{227}%n%F{reset}: %F{081}%2~%F{reset} => "
 Add to: `~/.bashrc`
 ```sh
 PS1="\e[1;49;93m\u\e[0m: \e[0;49;96m\W\e[0m => "
-``` 
-
+```
