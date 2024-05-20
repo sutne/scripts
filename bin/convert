@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#!/usr/bin/env python
 
 import argparse
 import glob
@@ -6,11 +6,17 @@ import os
 from pathlib import Path
 from typing import Callable, Union
 
-from setup.config import pandoc_templates_path
 from setup.util import min_python_version
 
 min_python_version(3, 9)
 
+from dotenv import load_dotenv
+load_dotenv()
+
+pandoc_templates_path = os.getenv("PANDOC_TEMPLATES_PATH")
+if pandoc_templates_path is None:
+    print("PANDOC_TEMPLATES_PATH not set in .env")
+    exit(1)
 
 parser = argparse.ArgumentParser(
     description="Convert '.md' files to '.pdf' with pandoc"
