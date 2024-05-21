@@ -82,7 +82,6 @@ def convert_to_pdf(files: list[str]) -> None:
         "--pdf-engine=pdflatex",
         "--filter pandoc-crossref",
         "--citeproc",
-        "--listings",
         # pandoc-crossref args/defaults
         "-M codeBlockCaptions=true",
         "-M figPrefix='Figure'",
@@ -101,6 +100,7 @@ def convert_file(markdown_file: str, pandoc_args: str):
     # add template to args if it is specified in metadata
     template = find_yaml_template(markdown_file)
     if template is not None:
+        pandoc_args +=  " --listings"
         pandoc_args += f" --template {os.path.join(pandoc_templates_path, template)}"
 
     if args["only_template"] != None:
